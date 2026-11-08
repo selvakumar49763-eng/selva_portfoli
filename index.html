@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Selva Kumar R — Fresher Software Developer & Data Science Graduate</title>
+  <title>Selva Kumar R — 3D Software Developer & Data Science Portfolio</title>
 
   <!-- Google Fonts: Outfit, Inter, and JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,17 +36,17 @@
             mono: ['"JetBrains Mono"', 'monospace'],
           },
           colors: {
-            darkBg: '#060813',
-            darkSurface: '#0b1126',
-            accentCyan: '#06b6d4',
-            accentBlue: '#3b82f6',
-            accentIndigo: '#6366f1',
-            accentPurple: '#a855f7',
+            spaceBg: '#050713',
+            darkGlass: 'rgba(10, 16, 36, 0.72)',
+            neonCyan: '#00f0ff',
+            neonBlue: '#3b82f6',
+            neonPurple: '#a855f7',
+            neonIndigo: '#6366f1',
           },
           boxShadow: {
-            'glow-cyan': '0 0 30px -5px rgba(6, 182, 212, 0.35)',
-            'glow-indigo': '0 0 30px -5px rgba(99, 102, 241, 0.35)',
-            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.45)',
+            'glow-cyan': '0 0 35px -5px rgba(0, 240, 255, 0.4)',
+            'glow-purple': '0 0 35px -5px rgba(168, 85, 247, 0.4)',
+            '3d-card': '0 20px 50px -15px rgba(0, 0, 0, 0.7), 0 0 20px 0 rgba(0, 240, 255, 0.1)',
           }
         }
       }
@@ -51,76 +54,118 @@
   </script>
 
   <style>
-    /* Prevent any horizontal overflow on all screen sizes */
+    /* Prevent horizontal scroll while enabling smooth 3D viewport */
     html, body {
       width: 100%;
       max-width: 100vw;
       overflow-x: hidden;
-      background-color: #060813;
+      background-color: #050713;
       color: #e2e8f0;
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Ambient Glowing Blur Orbs - Clamped to screen boundary */
-    .ambient-orb {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
+    /* Fixed WebGL 3D Background Canvas */
+    #three-canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: 0;
-      max-width: 100vw;
-      filter: blur(60px);
-      opacity: 0.7;
-    }
-    @media (max-width: 640px) {
-      .ambient-orb {
-        filter: blur(40px);
-        opacity: 0.5;
-      }
+      pointer-events: none;
     }
 
-    /* Modern Glassmorphic Containers */
-    .glass-card {
-      background: rgba(14, 21, 42, 0.65);
+    /* 3D Transform & Layering System */
+    .preserve-3d {
+      transform-style: preserve-3d;
+      perspective: 1200px;
+    }
+
+    .tilt-3d {
+      transform-style: preserve-3d;
+      transition: transform 0.18s cubic-bezier(0.2, 0, 0.3, 1), box-shadow 0.25s ease;
+      position: relative;
+    }
+
+    /* Depth Layers for 3D Floating Child Elements */
+    .depth-1 { transform: translateZ(15px); }
+    .depth-2 { transform: translateZ(30px); }
+    .depth-3 { transform: translateZ(48px); }
+    .depth-4 { transform: translateZ(64px); }
+
+    /* Frosted Holographic Glass Surface */
+    .glass-holo {
+      background: rgba(10, 16, 36, 0.65);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @media (hover: hover) and (pointer: fine) {
-      .glass-card:hover {
-        border-color: rgba(6, 182, 212, 0.4);
-        transform: translateY(-3px);
-        box-shadow: 0 16px 36px -8px rgba(6, 182, 212, 0.18);
-      }
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
     }
 
-    /* Cyber Geometric Grid Background Overlay */
-    .cyber-grid {
-      background-image: 
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 36px 36px;
+    .glass-holo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--sheen-x, 50%) var(--sheen-y, 50%), rgba(255, 255, 255, 0.12), transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
-    /* Custom Webkit Scrollbar */
+    .glass-holo:hover::before {
+      opacity: 1;
+    }
+
+    /* Glowing 3D Neon Borders */
+    .holo-border-cyan {
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .holo-border-cyan:hover {
+      border-color: rgba(0, 240, 255, 0.6);
+      box-shadow: inset 0 0 25px rgba(0, 240, 255, 0.12), 0 20px 40px -10px rgba(0, 240, 255, 0.25);
+    }
+
+    /* Animated 3D Floating Geometry */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(2deg); }
+    }
+    .animate-float-3d {
+      animation: floatSlow 6s ease-in-out infinite;
+    }
+
+    /* Blinking Typing Cursor */
+    .typing-cursor {
+      display: inline-block;
+      width: 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+      animation: blink 0.85s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Custom Scrollbar */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 7px;
+      height: 7px;
     }
     ::-webkit-scrollbar-track {
-      background: #060813;
+      background: #050713;
     }
     ::-webkit-scrollbar-thumb {
       background: #1e293b;
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #06b6d4;
+      background: #00f0ff;
     }
 
-    /* Hide scrollbar for category tabs while retaining horizontal swipe */
+    /* Hide scrollbars for swipe tabs */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -129,326 +174,361 @@
       scrollbar-width: none;
     }
 
-    /* Typing cursor animation */
-    .typing-cursor {
-      display: inline-block;
-      width: 2.5px;
-      margin-left: 4px;
-      vertical-align: middle;
-      animation: blink 0.9s infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    /* Touch target minimum utility */
+    /* Touch target */
     .touch-target {
       min-height: 44px;
       min-width: 44px;
     }
 
-    /* Clean Print / PDF Formatting */
+    /* Print / PDF Mode */
     @media print {
-      body {
-        background: #ffffff !important;
-        color: #0f172a !important;
-      }
-      .no-print, nav, #toast, #projectModal, #backToTopBtn, .ambient-orb, header, footer a {
+      #three-canvas-container, nav, #toast, #projectModal, #backToTopBtn, header, footer a {
         display: none !important;
       }
-      .glass-card {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .glass-holo {
         background: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
-        color: #0f172a !important;
-        page-break-inside: avoid;
+        color: #000000 !important;
+        transform: none !important;
       }
       a {
         text-decoration: none !important;
-        color: #0f172a !important;
+        color: #000000 !important;
       }
     }
   </style>
 </head>
 
-<body class="cyber-grid relative min-h-screen selection:bg-cyan-500 selection:text-black">
+<body class="relative min-h-screen selection:bg-neonCyan selection:text-black">
 
-  <!-- Clamped Ambient Glowing Orbs (Never causes horizontal stretch) -->
-  <div class="ambient-orb w-64 h-64 sm:w-96 sm:h-96 -top-10 -left-10 bg-cyan-500/20"></div>
-  <div class="ambient-orb w-72 h-72 sm:w-[500px] sm:h-[500px] top-80 -right-16 bg-indigo-600/20"></div>
-  <div class="ambient-orb w-64 h-64 sm:w-96 sm:h-96 top-[1500px] -left-12 bg-purple-600/15"></div>
-  <div class="ambient-orb w-80 h-80 sm:w-[450px] sm:h-[450px] bottom-32 -right-10 bg-cyan-600/15"></div>
+  <!-- 3D WebGL Three.js Canvas Container (Interactive Cyber Ambient Viewport) -->
+  <div id="three-canvas-container"></div>
 
-  <!-- Toast Notification Utility (Mobile Centered / Desktop Corner) -->
-  <div id="toast" class="fixed top-20 sm:top-24 inset-x-4 sm:inset-x-auto sm:right-6 z-50 transform -translate-y-28 opacity-0 transition-all duration-300 pointer-events-none flex items-center justify-center sm:justify-start gap-3 px-5 py-3.5 rounded-2xl bg-slate-900/95 text-white shadow-2xl border border-cyan-500/40 text-xs sm:text-sm backdrop-blur-xl max-w-sm mx-auto">
-    <i id="toastIcon" class="fa-solid fa-circle-check text-cyan-400 text-base flex-shrink-0"></i>
+  <!-- Toast Notification Utility -->
+  <div id="toast" class="fixed top-20 sm:top-24 inset-x-4 sm:inset-x-auto sm:right-6 z-50 transform -translate-y-28 opacity-0 transition-all duration-300 pointer-events-none flex items-center justify-center sm:justify-start gap-3 px-5 py-3.5 rounded-2xl bg-slate-900/95 text-white shadow-2xl border border-neonCyan/40 text-xs sm:text-sm backdrop-blur-2xl max-w-sm mx-auto">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-neonCyan text-base flex-shrink-0"></i>
     <span id="toastMsg" class="font-medium break-words">Action completed successfully!</span>
   </div>
 
-  <!-- ======================== ULTRA-RESPONSIVE NAVBAR ======================== -->
-  <header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-darkBg/85 border-b border-white/10 no-print transition-all duration-300">
+  <!-- ======================== 3D FLOATING NAVBAR ======================== -->
+  <header class="fixed top-0 inset-x-0 z-40 backdrop-blur-2xl bg-spaceBg/80 border-b border-white/10 no-print transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
       
-      <!-- Monogram & Title -->
-      <a href="#hero" class="flex items-center gap-2.5 sm:gap-3 group focus:outline-none">
-        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500 via-indigo-600 to-purple-600 p-[1.5px] transition-transform duration-300 group-hover:scale-105 shadow-glow-cyan flex-shrink-0">
-          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-outfit font-black text-cyan-400 text-sm sm:text-base">
+      <!-- 3D Monogram & Title -->
+      <a href="#hero" class="flex items-center gap-3 group focus:outline-none">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-neonCyan via-neonIndigo to-neonPurple p-[2px] shadow-glow-cyan transition-transform duration-300 group-hover:rotate-6 group-hover:scale-105 flex-shrink-0">
+          <div class="w-full h-full bg-[#070b1e] rounded-[10px] flex items-center justify-center font-outfit font-black text-neonCyan text-sm tracking-wider">
             SK
           </div>
         </div>
         <div class="flex flex-col">
-          <span class="font-outfit font-bold text-base sm:text-lg text-white tracking-tight leading-tight flex items-center gap-1.5">
-            Selva Kumar R <span class="hidden xs:inline text-[11px] font-mono font-normal text-cyan-400">&lt;dev/&gt;</span>
+          <span class="font-outfit font-bold text-base sm:text-lg text-white tracking-tight flex items-center gap-1.5">
+            Selva Kumar R <span class="hidden xs:inline text-[11px] font-mono text-neonCyan">&lt;3D/&gt;</span>
           </span>
-          <span class="text-[10px] font-mono text-slate-400 tracking-wide">Fresher Software Developer</span>
+          <span class="text-[10px] font-mono text-slate-400">Fresher Software Developer</span>
         </div>
       </a>
 
-      <!-- Desktop Links (>= 1024px) -->
-      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-slate-300">
-        <a href="#about" class="hover:text-cyan-400 transition-colors py-1">About</a>
-        <a href="#strengths" class="hover:text-cyan-400 transition-colors py-1">Strengths</a>
-        <a href="#skills" class="hover:text-cyan-400 transition-colors py-1">Skills</a>
-        <a href="#projects" class="hover:text-cyan-400 transition-colors py-1">Projects</a>
-        <a href="#education" class="hover:text-cyan-400 transition-colors py-1">Education</a>
-        <a href="#contact" class="hover:text-cyan-400 transition-colors py-1">Contact</a>
+      <!-- Desktop Nav Links -->
+      <nav class="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-300">
+        <a href="#about" class="hover:text-neonCyan transition-colors py-1">About</a>
+        <a href="#strengths" class="hover:text-neonCyan transition-colors py-1">Strengths</a>
+        <a href="#skills" class="hover:text-neonCyan transition-colors py-1">Skills</a>
+        <a href="#projects" class="hover:text-neonCyan transition-colors py-1">3D Projects</a>
+        <a href="#education" class="hover:text-neonCyan transition-colors py-1">Education</a>
+        <a href="#contact" class="hover:text-neonCyan transition-colors py-1">Contact</a>
       </nav>
 
       <!-- Desktop Actions -->
-      <div class="hidden sm:flex items-center gap-2.5 lg:gap-3">
-        <button onclick="window.print()" class="touch-target px-3.5 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-mono font-medium text-slate-200 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-          <i class="fa-solid fa-file-arrow-down text-cyan-400"></i>
+      <div class="hidden sm:flex items-center gap-3">
+        <button onclick="window.print()" class="touch-target px-3.5 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-mono font-medium text-slate-200 transition flex items-center gap-2">
+          <i class="fa-solid fa-file-pdf text-rose-400"></i>
           <span>Save PDF</span>
         </button>
-        <a href="#contact" class="touch-target px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-outfit font-bold text-xs tracking-wider uppercase transition shadow-glow-cyan flex items-center justify-center">
+        <a href="#contact" class="touch-target px-4 py-2 rounded-xl bg-gradient-to-r from-neonCyan to-neonBlue hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-outfit font-bold text-xs tracking-wider uppercase transition shadow-glow-cyan flex items-center justify-center">
           Get In Touch
         </a>
       </div>
 
-      <!-- Mobile/Tablet Hamburger Button (44px touch-target) -->
-      <button id="mobileNavToggle" class="lg:hidden touch-target w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="Toggle Mobile Menu" aria-expanded="false">
-        <i id="hamburgerIcon" class="fa-solid fa-bars text-lg transition-transform duration-200"></i>
+      <!-- Mobile Hamburger Button -->
+      <button id="mobileNavToggle" class="lg:hidden touch-target w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white focus:outline-none" aria-label="Toggle Mobile Menu">
+        <i id="hamburgerIcon" class="fa-solid fa-bars text-lg"></i>
       </button>
 
     </div>
 
-    <!-- Mobile Slide-Down Drawer (Smooth, Accessible & Touch-Friendly) -->
-    <div id="mobileDrawer" class="hidden lg:hidden px-5 pt-3 pb-6 border-b border-white/10 bg-darkBg/95 backdrop-blur-2xl transition-all duration-300">
+    <!-- Mobile Drawer -->
+    <div id="mobileDrawer" class="hidden lg:hidden px-5 pt-3 pb-6 border-b border-white/10 bg-spaceBg/95 backdrop-blur-2xl transition-all duration-300">
       <nav class="flex flex-col space-y-1">
-        <a href="#about" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">About & Background</a>
-        <a href="#strengths" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">Key Strengths</a>
-        <a href="#skills" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">Technical Skills</a>
-        <a href="#projects" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">Academic Projects</a>
-        <a href="#education" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">Education & Certifications</a>
-        <a href="#contact" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-cyan-400 hover:bg-white/5 font-medium text-sm transition">Contact Selva</a>
+        <a href="#about" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">About & Career</a>
+        <a href="#strengths" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">Key Strengths</a>
+        <a href="#skills" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">Technical Skills</a>
+        <a href="#projects" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">IoT & AI Projects</a>
+        <a href="#education" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">Education & Degrees</a>
+        <a href="#contact" class="drawer-link touch-target flex items-center px-3 rounded-lg text-slate-200 hover:text-neonCyan hover:bg-white/5 text-sm font-medium">Contact Selva</a>
       </nav>
-
       <div class="mt-4 pt-4 border-t border-white/10 flex flex-col xs:flex-row items-center gap-2.5">
-        <button onclick="window.print(); closeMobileDrawer();" class="touch-target w-full xs:w-1/2 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-mono text-slate-200 flex items-center justify-center gap-2">
-          <i class="fa-solid fa-file-arrow-down text-cyan-400"></i>
+        <button onclick="window.print(); closeMobileDrawer();" class="touch-target w-full xs:w-1/2 py-2.5 rounded-xl border border-white/15 bg-white/5 text-xs font-mono text-slate-200 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-pdf text-rose-400"></i>
           <span>Save PDF</span>
         </button>
-        <a href="#contact" onclick="closeMobileDrawer();" class="touch-target w-full xs:w-1/2 py-2.5 text-center rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-slate-950 font-outfit font-bold text-xs tracking-wider uppercase flex items-center justify-center">
+        <a href="#contact" onclick="closeMobileDrawer();" class="touch-target w-full xs:w-1/2 py-2.5 text-center rounded-xl bg-gradient-to-r from-neonCyan to-neonBlue text-slate-950 font-outfit font-bold text-xs uppercase flex items-center justify-center">
           Get in Touch
         </a>
       </div>
     </div>
   </header>
 
-  <!-- ======================== MAIN CONTAINER (Fluid & Responsive) ======================== -->
-  <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32 pb-24 space-y-20 sm:space-y-28 relative z-10">
+  <!-- ======================== MAIN 3D CONTAINER ======================== -->
+  <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32 pb-24 space-y-24 sm:space-y-32 relative z-10">
 
-    <!-- ==================== 1. HERO SECTION ==================== -->
-    <section id="hero" class="min-h-[75vh] flex flex-col justify-center items-start pt-4 sm:pt-8">
+    <!-- ==================== 1. HERO SECTION WITH 3D HOLOGRAPHIC CARD ==================== -->
+    <section id="hero" class="min-h-[80vh] flex flex-col lg:flex-row items-center justify-between gap-12 pt-4 sm:pt-8 preserve-3d">
       
-      <!-- Availability Status Badge -->
-      <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-6 backdrop-blur-md max-w-full">
-        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0"></span>
-        <span class="truncate">Open to Software Developer Roles &bull; Fresher 2025</span>
-      </div>
-
-      <!-- Main Headline & Responsive Fluid Typography -->
-      <div class="space-y-3 sm:space-y-4 w-full max-w-4xl">
-        <h2 class="text-slate-400 font-mono text-xs sm:text-sm md:text-base tracking-wider uppercase flex items-center gap-2">
-          <i class="fa-solid fa-location-dot text-rose-400 flex-shrink-0"></i>
-          <span class="truncate">Chennai, Tamil Nadu, India</span>
-        </h2>
+      <!-- Left: Interactive Intro & Verbatim Resume Objective -->
+      <div class="w-full lg:w-7/12 space-y-6">
         
-        <h1 class="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-outfit font-black text-white tracking-tight leading-[1.1] break-words">
-          Hi, I'm <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">Selva Kumar R</span>
-        </h1>
-
-        <!-- Typing Animation Line (Mobile Min-Height Protected) -->
-        <div class="text-lg xs:text-xl sm:text-2xl md:text-3xl font-outfit font-bold text-slate-300 min-h-[52px] sm:min-h-[44px] flex items-center leading-snug">
-          <span id="typingTarget"></span><span class="typing-cursor bg-cyan-400 h-6 sm:h-7"></span>
+        <!-- Live Status Pill -->
+        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-neonCyan/10 border border-neonCyan/30 text-neonCyan text-xs font-mono backdrop-blur-md">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonCyan animate-ping flex-shrink-0"></span>
+          <span>Ready for Software Developer Opportunities &bull; Fresher 2025</span>
         </div>
-
-        <!-- Objective Verbatim from Resume -->
-        <p class="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed font-normal pt-1 break-words">
-          Motivated and detail-oriented Computer Science graduate pursuing <strong class="text-white font-semibold">M.Sc. in Data Science</strong> with a strong foundation in <span class="text-cyan-400 font-mono font-medium">Python</span>, <span class="text-indigo-400 font-mono font-medium">Java</span>, and <span class="text-blue-400 font-mono font-medium">C++</span>. Eager to start a career as a <strong class="text-white font-semibold">Fresher Software Developer</strong>, leveraging core skills in programming, database management, and problem-solving to contribute to software development projects.
-        </p>
-      </div>
-
-      <!-- Action Buttons (Responsive Wrap & Minimum Touch Targets) -->
-      <div class="mt-8 flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-3 w-full sm:w-auto">
-        <a href="#projects" class="touch-target px-6 py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-outfit font-bold text-sm tracking-wide shadow-glow-cyan transition duration-200 flex items-center justify-center gap-2">
-          <span>Explore Projects</span>
-          <i class="fa-solid fa-arrow-right text-xs"></i>
-        </a>
-        <a href="#contact" class="touch-target px-6 py-3 rounded-xl sm:rounded-2xl glass-card text-white hover:text-cyan-400 font-outfit font-semibold text-sm transition flex items-center justify-center gap-2">
-          <i class="fa-regular fa-paper-plane text-xs"></i>
-          <span>Contact Me</span>
-        </a>
-        <button onclick="window.print()" class="touch-target px-5 py-3 rounded-xl sm:rounded-2xl glass-card text-slate-300 hover:text-white font-mono text-xs transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-file-pdf text-rose-400"></i>
-          <span>Save Resume</span>
-        </button>
-      </div>
-
-      <!-- Quick Info Pills (Wrap Safely, No Phone Number) -->
-      <div class="mt-8 pt-6 border-t border-white/10 w-full max-w-4xl flex flex-wrap items-center gap-2.5 sm:gap-3">
-        
-        <!-- Email Copy Pill (break-all on small screens) -->
-        <button onclick="copyToClipboard('selvakumar49763@gmail.com', 'Email address copied!')" class="touch-target max-w-full px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/40 text-xs font-mono text-slate-200 hover:text-cyan-300 transition flex items-center gap-2 group" title="Click to copy email">
-          <i class="fa-regular fa-envelope text-cyan-400 flex-shrink-0"></i>
-          <span class="break-all">selvakumar49763@gmail.com</span>
-          <i class="fa-regular fa-copy text-[11px] text-slate-400 group-hover:text-cyan-400 transition flex-shrink-0"></i>
-        </button>
 
         <!-- Location Badge -->
-        <div class="touch-target px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-300 flex items-center gap-2">
+        <div class="text-slate-400 font-mono text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
           <i class="fa-solid fa-location-dot text-rose-400 flex-shrink-0"></i>
-          <span>Chennai, Tamil Nadu</span>
+          <span>Chennai, Tamil Nadu, India</span>
         </div>
 
-        <!-- B.Sc. Degree Highlight -->
-        <div class="touch-target px-3.5 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs font-mono text-indigo-300 flex items-center gap-2">
-          <i class="fa-solid fa-graduation-cap text-indigo-400 flex-shrink-0"></i>
-          <span>B.Sc. AI & ML (8.12 CGPA)</span>
+        <!-- Name Headline -->
+        <h1 class="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-outfit font-black text-white tracking-tight leading-[1.08] break-words">
+          Hi, I'm <br class="hidden sm:inline">
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-neonCyan via-neonBlue to-neonPurple">
+            Selva Kumar R
+          </span>
+        </h1>
+
+        <!-- 3D Animated Role Tagline -->
+        <div class="text-lg xs:text-xl sm:text-2xl font-outfit font-bold text-slate-300 min-h-[44px] flex items-center leading-snug">
+          <span id="typingTarget"></span><span class="typing-cursor bg-neonCyan h-6 sm:h-7"></span>
         </div>
 
-        <!-- M.Sc. Status Highlight -->
-        <div class="touch-target px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono text-cyan-300 flex items-center gap-2">
-          <i class="fa-solid fa-brain text-cyan-400 flex-shrink-0"></i>
-          <span>M.Sc. Data Science Pursuing</span>
+        <!-- Career Objective Verbatim from Resume -->
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed font-normal pt-1">
+          Motivated and detail-oriented Computer Science graduate pursuing <strong class="text-white font-semibold">M.Sc. in Data Science</strong> with a strong foundation in <span class="text-neonCyan font-mono font-medium">Python</span>, <span class="text-indigo-400 font-mono font-medium">Java</span>, and <span class="text-blue-400 font-mono font-medium">C++</span>. Eager to start a career as a <strong class="text-white font-semibold">Fresher Software Developer</strong>, leveraging core skills in programming, database management, and problem-solving to contribute to software development projects.
+        </p>
+
+        <!-- CTA Action Buttons -->
+        <div class="pt-2 flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-3.5">
+          <a href="#projects" class="touch-target px-6 py-3.5 rounded-2xl bg-gradient-to-r from-neonCyan via-cyan-400 to-neonBlue hover:shadow-glow-cyan text-slate-950 font-outfit font-extrabold text-sm tracking-wide transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2.5">
+            <span>Explore 3D Projects</span>
+            <i class="fa-solid fa-cube text-xs"></i>
+          </a>
+          <a href="#contact" class="touch-target px-6 py-3.5 rounded-2xl glass-holo holo-border-cyan text-white hover:text-neonCyan font-outfit font-semibold text-sm transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+            <i class="fa-regular fa-paper-plane text-xs"></i>
+            <span>Get In Touch</span>
+          </a>
+          <button onclick="window.print()" class="touch-target px-5 py-3.5 rounded-2xl glass-holo border border-white/15 text-slate-300 hover:text-white font-mono text-xs transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-pdf text-rose-400"></i>
+            <span>Export Resume</span>
+          </button>
         </div>
 
+        <!-- Quick Info Pills (Strictly Email, Location, Degrees - No Phone) -->
+        <div class="pt-4 border-t border-white/10 flex flex-wrap items-center gap-2.5">
+          <!-- 3D Copy Email Pill -->
+          <button onclick="copyToClipboard('selvakumar49763@gmail.com', 'Email copied!')" class="tilt-3d touch-target max-w-full px-3.5 py-2 rounded-xl bg-white/5 hover:bg-neonCyan/15 border border-white/10 hover:border-neonCyan/40 text-xs font-mono text-slate-200 transition flex items-center gap-2 group">
+            <i class="fa-regular fa-envelope text-neonCyan flex-shrink-0"></i>
+            <span class="break-all">selvakumar49763@gmail.com</span>
+            <i class="fa-regular fa-copy text-[11px] text-slate-400 group-hover:text-neonCyan transition flex-shrink-0"></i>
+          </button>
+
+          <!-- Degree Pill -->
+          <div class="px-3.5 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs font-mono text-indigo-300 flex items-center gap-2">
+            <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+            <span>B.Sc. AI & ML (8.12 CGPA)</span>
+          </div>
+
+          <!-- Master Pill -->
+          <div class="px-3.5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-mono text-purple-300 flex items-center gap-2">
+            <i class="fa-solid fa-microchip text-purple-400"></i>
+            <span>M.Sc. Data Science Pursuing</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Interactive 3D Holographic Hero Card (Preserve-3D Tilt with Real Depth Layers) -->
+      <div class="w-full lg:w-5/12 flex items-center justify-center preserve-3d">
+        <div class="tilt-3d glass-holo holo-border-cyan rounded-3xl p-7 sm:p-9 max-w-md w-full shadow-3d-card relative group animate-float-3d">
+          
+          <!-- Background Ambient Glow inside Card -->
+          <div class="absolute -top-16 -right-16 w-48 h-48 bg-neonCyan/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-neonPurple/20 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- Layer 1: Holographic Circuit Badge Header (Depth 4) -->
+          <div class="depth-4 flex items-center justify-between border-b border-white/10 pb-5">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-xl shadow-glow-cyan">
+                <i class="fa-solid fa-microchip"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-mono text-neonCyan uppercase tracking-widest block">DEVELOPER ID CARD</span>
+                <h3 class="font-outfit font-black text-white text-lg sm:text-xl">Selva Kumar R</h3>
+              </div>
+            </div>
+            <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#34d399]"></div>
+          </div>
+
+          <!-- Layer 2: 3D Isometric Metrics (Depth 3) -->
+          <div class="depth-3 my-6 grid grid-cols-2 gap-3.5">
+            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+              <span class="text-2xl font-black font-outfit text-neonCyan block">8.12</span>
+              <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">B.Sc. CGPA</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+              <span class="text-2xl font-black font-outfit text-indigo-400 block">M.Sc.</span>
+              <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Data Science</span>
+            </div>
+          </div>
+
+          <!-- Layer 3: Tech Stack Matrix Pill Array (Depth 2) -->
+          <div class="depth-2 space-y-2.5">
+            <span class="text-[11px] font-mono text-slate-400 block">Core Architecture Stacks:</span>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-neonCyan font-mono text-xs">Python</span>
+              <span class="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono text-xs">Java</span>
+              <span class="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono text-xs">C / C++</span>
+              <span class="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 font-mono text-xs">Arduino</span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs">MySQL</span>
+            </div>
+          </div>
+
+          <!-- Layer 4: Interactive 3D Rotation Cue (Depth 1) -->
+          <div class="depth-1 mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-slate-400 text-xs font-mono">
+            <span class="flex items-center gap-1.5 text-neonCyan">
+              <i class="fa-solid fa-arrows-spin"></i>
+              <span>Interactive 3D Tilt</span>
+            </span>
+            <span>VISTAS 2022-2025</span>
+          </div>
+
+        </div>
       </div>
 
     </section>
 
-    <!-- ==================== 2. ABOUT & KEY STRENGTHS ==================== -->
-    <section id="strengths" class="space-y-8 sm:space-y-10 scroll-mt-24">
+    <!-- ==================== 2. ABOUT & KEY STRENGTHS (3D CARDS) ==================== -->
+    <section id="strengths" class="space-y-8 sm:space-y-10 scroll-mt-24 preserve-3d">
       
       <!-- Section Header -->
       <div class="space-y-1">
-        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-          <span>01 / Profile & Strengths</span>
+        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-neonCyan uppercase tracking-widest">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan"></span>
+          <span>01 / Core Profile</span>
         </div>
         <h2 class="text-2xl xs:text-3xl sm:text-4xl font-outfit font-black text-white tracking-tight">
-          About & Core Capabilities
+          Key Strengths & Approach
         </h2>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
         
-        <!-- Objective Summary Card -->
-        <div id="about" class="lg:col-span-6 glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl shadow-glow-cyan">
-              <i class="fa-solid fa-laptop-code"></i>
+        <!-- Large 3D Overview Card -->
+        <div id="about" class="lg:col-span-6 tilt-3d glass-holo holo-border-cyan rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6">
+          <div class="depth-2 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan text-xl shadow-glow-cyan">
+              <i class="fa-solid fa-layer-group"></i>
             </div>
             
             <h3 class="text-xl sm:text-2xl font-outfit font-bold text-white tracking-tight">
-              Software Engineering, Data Systems & Hardware Logic
+              Bridging Algorithmic Logic with Physical Systems
             </h3>
 
-            <p class="text-slate-300 text-sm leading-relaxed">
-              With a solid undergraduate specialization in <strong class="text-cyan-400">Artificial Intelligence & Machine Learning (8.12 CGPA)</strong> and advancing into <strong class="text-indigo-400">Data Science & Business Analytics (M.Sc.)</strong> at Vels Institute of Science, Technology & Advanced Studies (VISTAS), I specialize in converting algorithmic theory into robust executable software.
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              With a completed <strong class="text-white">B.Sc. in Computer Science (Artificial Intelligence & Machine Learning)</strong> holding an <strong class="text-neonCyan font-mono">8.12 CGPA</strong>, and presently pursuing an <strong class="text-white">M.Sc. in Data Science & Business Analytics</strong> at Vels Institute of Science, Technology & Advanced Studies (VISTAS), I specialize in software development from algorithmic design to database integration.
             </p>
 
-            <p class="text-slate-300 text-sm leading-relaxed">
-              My hands-on experience includes low-level microcontroller systems using <span class="font-mono text-cyan-300">C++ and Embedded C++</span> for automotive safety locks, alongside building relational database schemas in <span class="font-mono text-cyan-300">MySQL, SQL++, and MongoDB</span>.
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              My engineering work is rooted in practical execution: programming automated ignition-locks in <span class="font-mono text-neonCyan">C++ and Embedded C++</span> on microcontrollers, implementing sensor threshold controls, and architecting database schemas in <span class="font-mono text-neonCyan">MySQL, SQL++, and MongoDB</span>.
             </p>
           </div>
 
-          <!-- Academic Highlights Strip -->
-          <div class="pt-6 border-t border-white/10 grid grid-cols-3 gap-2.5 sm:gap-3 text-center font-mono">
-            <div class="p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
-              <span class="text-lg xs:text-xl sm:text-2xl font-black text-cyan-400 block">8.12</span>
-              <span class="text-[10px] sm:text-[11px] text-slate-400 uppercase">B.Sc. CGPA</span>
+          <!-- Bottom 3D Isometric Chips -->
+          <div class="depth-3 pt-6 border-t border-white/10 grid grid-cols-3 gap-2.5 text-center font-mono">
+            <div class="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span class="text-xl sm:text-2xl font-black text-neonCyan block">8.12</span>
+              <span class="text-[10px] text-slate-400 uppercase">B.Sc. CGPA</span>
             </div>
-            <div class="p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
-              <span class="text-lg xs:text-xl sm:text-2xl font-black text-indigo-400 block">M.Sc.</span>
-              <span class="text-[10px] sm:text-[11px] text-slate-400 uppercase">Data Science</span>
+            <div class="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span class="text-xl sm:text-2xl font-black text-indigo-400 block">VISTAS</span>
+              <span class="text-[10px] text-slate-400 uppercase">Chennai</span>
             </div>
-            <div class="p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
-              <span class="text-lg xs:text-xl sm:text-2xl font-black text-emerald-400 block">100%</span>
-              <span class="text-[10px] sm:text-[11px] text-slate-400 uppercase">Dedicated</span>
+            <div class="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span class="text-xl sm:text-2xl font-black text-emerald-400 block">100%</span>
+              <span class="text-[10px] text-slate-400 uppercase">Dedication</span>
             </div>
           </div>
-
         </div>
 
-        <!-- Resume Key Strengths Breakdown (4 Responsive Cards) -->
-        <div class="lg:col-span-6 grid grid-cols-1 gap-4">
+        <!-- 4 3D Strength Cards -->
+        <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           
-          <!-- Key Strength 1 -->
-          <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-cyan-500 space-y-2">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-base flex-shrink-0">
+          <!-- Strength 1 -->
+          <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-neonCyan space-y-2.5">
+            <div class="depth-2 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-neonCyan/10 text-neonCyan flex items-center justify-center text-base flex-shrink-0">
                 <i class="fa-solid fa-bolt"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-base">Quick Tech Stack Learner</h4>
+              <h4 class="font-outfit font-bold text-white text-sm">Quick Tech Learner</h4>
             </div>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed sm:pl-12">
-              Strong willingness and proven ability to master new programming languages, frameworks, developer tools, and firmware APIs with high speed and retention.
+            <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+              Quick learner with a strong willingness to master new tech stacks, programming languages, and firmware frameworks rapidly.
             </p>
-            <span class="block sm:pl-12 text-[11px] font-mono text-cyan-400/80">Continuous Learning &bull; Proactive Problem Solver</span>
           </div>
 
-          <!-- Key Strength 2 -->
-          <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-indigo-500 space-y-2">
-            <div class="flex items-center gap-3">
+          <!-- Strength 2 -->
+          <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-indigo-500 space-y-2.5">
+            <div class="depth-2 flex items-center gap-3">
               <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-base flex-shrink-0">
                 <i class="fa-solid fa-brain"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-base">Analytical Thinking & Systematic Approach</h4>
+              <h4 class="font-outfit font-bold text-white text-sm">Analytical Thinking</h4>
             </div>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed sm:pl-12">
-              Structured methodology for dissecting complex requirements, isolating system edge cases, designing relational data schemas, and producing clean code.
+            <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+              Systematic problem-solving approach to isolate edge cases, optimize algorithms, and build clear data structures.
             </p>
-            <span class="block sm:pl-12 text-[11px] font-mono text-indigo-400/80">Structured Logic &bull; Clean Architecture</span>
           </div>
 
-          <!-- Key Strength 3 -->
-          <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-purple-500 space-y-2">
-            <div class="flex items-center gap-3">
+          <!-- Strength 3 -->
+          <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-purple-500 space-y-2.5">
+            <div class="depth-2 flex items-center gap-3">
               <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-base flex-shrink-0">
                 <i class="fa-solid fa-clock-rotate-left"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-base">Good Time Management & Adaptability</h4>
+              <h4 class="font-outfit font-bold text-white text-sm">Time Management</h4>
             </div>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed sm:pl-12">
-              Highly disciplined milestone tracking, agile sprint participation, and seamless adaptability across shifting project goals and hardware-software constraints.
+            <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+              Good time management and adaptability across dynamic project deadlines, team collaboration, and changing requirements.
             </p>
-            <span class="block sm:pl-12 text-[11px] font-mono text-purple-400/80">Goal Driven &bull; Agile Team Player</span>
           </div>
 
-          <!-- Key Strength 4 -->
-          <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-emerald-500 space-y-2">
-            <div class="flex items-center gap-3">
+          <!-- Strength 4 -->
+          <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-emerald-500 space-y-2.5">
+            <div class="depth-2 flex items-center gap-3">
               <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
-                <i class="fa-solid fa-microchip"></i>
+                <i class="fa-solid fa-diagram-project"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-base">End-to-End System Development</h4>
+              <h4 class="font-outfit font-bold text-white text-sm">End-to-End Delivery</h4>
             </div>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed sm:pl-12">
-              Capable of bridging high-level software logic with physical sensors, embedded circuits, and real-time alert actuators for mission-critical reliability.
+            <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+              Experience harmonizing hardware sensory inputs, C++ control logic, buzzer/LED feedback, and database record keeping.
             </p>
-            <span class="block sm:pl-12 text-[11px] font-mono text-emerald-400/80">Hardware-Software Co-Design</span>
           </div>
 
         </div>
@@ -456,13 +536,13 @@
       </div>
     </section>
 
-    <!-- ==================== 3. TECHNICAL SKILLS MATRIX ==================== -->
-    <section id="skills" class="space-y-8 sm:space-y-10 scroll-mt-24">
+    <!-- ==================== 3. 3D TECHNICAL SKILLS MATRIX ==================== -->
+    <section id="skills" class="space-y-8 sm:space-y-10 scroll-mt-24 preserve-3d">
       
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div class="space-y-1">
-          <div class="flex items-center gap-2 font-mono text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <div class="flex items-center gap-2 font-mono text-xs font-semibold text-neonCyan uppercase tracking-widest">
+            <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan"></span>
             <span>02 / Capabilities</span>
           </div>
           <h2 class="text-2xl xs:text-3xl sm:text-4xl font-outfit font-black text-white tracking-tight">
@@ -470,35 +550,35 @@
           </h2>
         </div>
 
-        <!-- Filter Tabs: Horizontal touch scroll on mobile, flex-wrap on tablet/desktop -->
+        <!-- 3D Filter Tabs -->
         <div class="w-full md:w-auto overflow-x-auto no-scrollbar pb-1">
-          <div class="inline-flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10 text-xs font-mono min-w-max">
-            <button onclick="filterSkills('all')" class="skill-filter-btn touch-target active-filter px-3.5 py-2 rounded-xl transition-all font-medium" data-category="all">All</button>
-            <button onclick="filterSkills('languages')" class="skill-filter-btn touch-target px-3.5 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="languages">Languages</button>
-            <button onclick="filterSkills('databases')" class="skill-filter-btn touch-target px-3.5 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="databases">Databases</button>
-            <button onclick="filterSkills('embedded')" class="skill-filter-btn touch-target px-3.5 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="embedded">Hardware & Firmware</button>
-            <button onclick="filterSkills('frontend')" class="skill-filter-btn touch-target px-3.5 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="frontend">Frontend</button>
-            <button onclick="filterSkills('tools')" class="skill-filter-btn touch-target px-3.5 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="tools">Tools & IDEs</button>
+          <div class="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-mono min-w-max">
+            <button onclick="filterSkills('all')" class="skill-filter-btn touch-target active-filter px-4 py-2 rounded-xl transition-all font-medium" data-category="all">All</button>
+            <button onclick="filterSkills('languages')" class="skill-filter-btn touch-target px-4 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="languages">Languages</button>
+            <button onclick="filterSkills('databases')" class="skill-filter-btn touch-target px-4 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="databases">Databases</button>
+            <button onclick="filterSkills('embedded')" class="skill-filter-btn touch-target px-4 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="embedded">Hardware & Firmware</button>
+            <button onclick="filterSkills('frontend')" class="skill-filter-btn touch-target px-4 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="frontend">Frontend</button>
+            <button onclick="filterSkills('tools')" class="skill-filter-btn touch-target px-4 py-2 rounded-xl transition-all text-slate-400 hover:text-white font-medium" data-category="tools">Tools & IDEs</button>
           </div>
         </div>
       </div>
 
-      <!-- Skills Cards Grid -->
+      <!-- Skills 3D Cards Grid -->
       <div id="skillsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
 
         <!-- Card: Programming Languages -->
-        <div class="skill-item-card glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4" data-group="languages">
-          <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-lg border border-cyan-500/20">
+        <div class="skill-item-card tilt-3d glass-holo rounded-3xl p-6 space-y-4 holo-border-cyan" data-group="languages">
+          <div class="depth-2 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-neonCyan/10 text-neonCyan flex items-center justify-center text-xl border border-neonCyan/20">
               <i class="fa-solid fa-code"></i>
             </div>
-            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Core</span>
+            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-neonCyan/15 text-neonCyan border border-neonCyan/30">Core Stacks</span>
           </div>
-          <div>
+          <div class="depth-1">
             <h4 class="font-outfit font-bold text-white text-lg">Programming Languages</h4>
-            <p class="text-xs text-slate-400 mt-1">Object-oriented programming, data structures, and algorithmic logic.</p>
+            <p class="text-xs text-slate-400 mt-1">Object-oriented programming, data structures, and algorithms.</p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2">
+          <div class="depth-2 flex flex-wrap gap-2 pt-2">
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
               <i class="fa-brands fa-python text-amber-400"></i> Python
             </span>
@@ -506,24 +586,24 @@
               <i class="fa-brands fa-java text-rose-400"></i> Java
             </span>
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-terminal text-cyan-400"></i> C / C++
+              <i class="fa-solid fa-terminal text-neonCyan"></i> C / C++
             </span>
           </div>
         </div>
 
         <!-- Card: Databases -->
-        <div class="skill-item-card glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4" data-group="databases">
-          <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg border border-indigo-500/20">
+        <div class="skill-item-card tilt-3d glass-holo rounded-3xl p-6 space-y-4 border border-indigo-500/20" data-group="databases">
+          <div class="depth-2 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl border border-indigo-500/20">
               <i class="fa-solid fa-database"></i>
             </div>
-            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Data Storage</span>
+            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">Storage</span>
           </div>
-          <div>
-            <h4 class="font-outfit font-bold text-white text-lg">Databases & Querying</h4>
-            <p class="text-xs text-slate-400 mt-1">Relational schema design, SQL querying, and NoSQL document models.</p>
+          <div class="depth-1">
+            <h4 class="font-outfit font-bold text-white text-lg">Databases</h4>
+            <p class="text-xs text-slate-400 mt-1">Relational schema design, querying, and document storage.</p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2">
+          <div class="depth-2 flex flex-wrap gap-2 pt-2">
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
               <i class="fa-solid fa-table text-blue-400"></i> MySQL
             </span>
@@ -531,24 +611,24 @@
               <i class="fa-solid fa-cubes text-indigo-400"></i> SQL++
             </span>
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-leaf text-emerald-400"></i> MongoDB
+              <i class="fa-solid fa-leaf text-emerald-400"></i> MONGO DB
             </span>
           </div>
         </div>
 
         <!-- Card: Hardware & Firmware -->
-        <div class="skill-item-card glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4" data-group="embedded">
-          <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg border border-purple-500/20">
+        <div class="skill-item-card tilt-3d glass-holo rounded-3xl p-6 space-y-4 border border-purple-500/20" data-group="embedded">
+          <div class="depth-2 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl border border-purple-500/20">
               <i class="fa-solid fa-microchip"></i>
             </div>
-            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">IoT & Embedded</span>
+            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">Firmware</span>
           </div>
-          <div>
+          <div class="depth-1">
             <h4 class="font-outfit font-bold text-white text-lg">Hardware & Firmware</h4>
-            <p class="text-xs text-slate-400 mt-1">Microcontroller interfacing, interrupt routines, real-time sensory thresholds.</p>
+            <p class="text-xs text-slate-400 mt-1">Microcontroller interfacing, interrupt routines, and sensors.</p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2">
+          <div class="depth-2 flex flex-wrap gap-2 pt-2">
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
               <i class="fa-solid fa-infinity text-teal-400"></i> Arduino
             </span>
@@ -556,51 +636,51 @@
               <i class="fa-solid fa-gears text-purple-400"></i> Embedded C++
             </span>
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-network-wired text-cyan-400"></i> Sensor Integration
+              <i class="fa-solid fa-network-wired text-neonCyan"></i> Sensor Integration
             </span>
           </div>
         </div>
 
-        <!-- Card: Frontend Basics -->
-        <div class="skill-item-card glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4" data-group="frontend">
-          <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg border border-amber-500/20">
+        <!-- Card: Frontend -->
+        <div class="skill-item-card tilt-3d glass-holo rounded-3xl p-6 space-y-4 border border-amber-500/20" data-group="frontend">
+          <div class="depth-2 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl border border-amber-500/20">
               <i class="fa-solid fa-desktop"></i>
             </div>
-            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">Web UI</span>
+            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Client UI</span>
           </div>
-          <div>
-            <h4 class="font-outfit font-bold text-white text-lg">Frontend Development</h4>
-            <p class="text-xs text-slate-400 mt-1">Responsive web layouts, semantic markup, and client-side interactions.</p>
+          <div class="depth-1">
+            <h4 class="font-outfit font-bold text-white text-lg">Frontend</h4>
+            <p class="text-xs text-slate-400 mt-1">Responsive web layouts, semantic markup, and interactive code.</p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2">
+          <div class="depth-2 flex flex-wrap gap-2 pt-2">
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-brands fa-html5 text-orange-500"></i> HTML5
+              <i class="fa-brands fa-html5 text-orange-500"></i> HTML
             </span>
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-brands fa-css3-alt text-blue-500"></i> CSS3
+              <i class="fa-brands fa-css3-alt text-blue-500"></i> CSS
             </span>
             <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-brands fa-js text-yellow-400"></i> JavaScript
+              <i class="fa-brands fa-js text-yellow-400"></i> Java Script
             </span>
           </div>
         </div>
 
-        <!-- Card: Developer Tools & IDEs -->
-        <div class="skill-item-card glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 sm:col-span-2 lg:col-span-2" data-group="tools">
-          <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/20">
-              <i class="fa-solid fa-screwdriver-wrench"></i>
+        <!-- Card: Tools & IDEs -->
+        <div class="skill-item-card tilt-3d glass-holo rounded-3xl p-6 space-y-4 sm:col-span-2 lg:col-span-2 border border-emerald-500/20" data-group="tools">
+          <div class="depth-2 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl border border-emerald-500/20">
+              <i class="fa-solid fa-wrench"></i>
             </div>
-            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Productivity</span>
+            <span class="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Environment</span>
           </div>
-          <div>
+          <div class="depth-1">
             <h4 class="font-outfit font-bold text-white text-lg">Developer Tools & IDEs</h4>
-            <p class="text-xs text-slate-400 mt-1">Environments used for building software, data exploration, ML experiments, and embedded compiling.</p>
+            <p class="text-xs text-slate-400 mt-1">Modern integrated developer suites used for compiling code, notebooks, and hardware flashing.</p>
           </div>
-          <div class="flex flex-wrap gap-2.5 pt-2">
+          <div class="depth-2 flex flex-wrap gap-2.5 pt-2">
             <span class="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-code text-cyan-400"></i> VS Code
+              <i class="fa-solid fa-code text-neonCyan"></i> VS Code
             </span>
             <span class="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-slate-200 flex items-center gap-2">
               <i class="fa-solid fa-book text-amber-500"></i> Jupyter Notebook
@@ -617,105 +697,110 @@
       </div>
     </section>
 
-    <!-- ==================== 4. ACADEMIC & FEATURED PROJECTS ==================== -->
-    <section id="projects" class="space-y-8 sm:space-y-10 scroll-mt-24">
+    <!-- ==================== 4. 3D ACADEMIC PROJECTS ==================== -->
+    <section id="projects" class="space-y-8 sm:space-y-10 scroll-mt-24 preserve-3d">
       
       <div class="space-y-1">
-        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-          <span>03 / Engineering Works</span>
+        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-neonCyan uppercase tracking-widest">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan"></span>
+          <span>03 / Engineering Systems</span>
         </div>
         <h2 class="text-2xl xs:text-3xl sm:text-4xl font-outfit font-black text-white tracking-tight">
           Academic Projects
         </h2>
-        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Real-time embedded hardware control and intelligent data science pipelines.</p>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Real-time hardware microcontroller design and computer vision analytics.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         
         <!-- PROJECT 1: IoT-Based Automotive Safety System (Resume Main Project) -->
-        <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 border border-cyan-500/20 relative group">
+        <div class="tilt-3d glass-holo rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 holo-border-cyan group">
           
           <div class="space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                Academic Project &bull; Systems Designer
+            <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+              <span class="px-3.5 py-1 rounded-full text-xs font-mono font-semibold bg-neonCyan/15 text-neonCyan border border-neonCyan/30">
+                Academic Project &bull; Developer/Systems Designer
               </span>
               <span class="text-xs font-mono text-slate-400">C++ / Embedded</span>
             </div>
 
-            <h3 class="text-xl sm:text-2xl font-outfit font-bold text-white tracking-tight group-hover:text-cyan-300 transition-colors">
-              IoT-Based Automotive Safety System
-            </h3>
+            <div class="depth-3">
+              <h3 class="text-xl sm:text-2xl font-outfit font-bold text-white tracking-tight group-hover:text-neonCyan transition-colors">
+                IoT-Based Automotive Safety System
+              </h3>
+              <p class="text-xs font-mono text-neonCyan/90 mt-1">Tools Used: C++, Embedded C++, Arduino IDE, Sensor Integration</p>
+            </div>
 
-            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+            <p class="depth-1 text-slate-300 text-xs sm:text-sm leading-relaxed">
               Built an automated vehicle ignition-lock system using C++ and hardware sensors to dynamically intercept ignition starter motors upon safety hazard detection.
             </p>
 
             <!-- Verbatim Deliverables from Resume -->
-            <div class="space-y-2.5 pt-2 text-xs text-slate-300 font-sans">
+            <div class="depth-2 space-y-2.5 pt-1 text-xs text-slate-300 font-sans">
               <div class="flex items-start gap-2.5">
-                <i class="fa-solid fa-circle-check text-cyan-400 mt-0.5 text-sm flex-shrink-0"></i>
+                <i class="fa-solid fa-circle-check text-neonCyan mt-0.5 text-sm flex-shrink-0"></i>
                 <span><strong>Ignition-Lock System:</strong> Built an automated vehicle ignition-lock system using C++ and hardware sensors.</span>
               </div>
               <div class="flex items-start gap-2.5">
-                <i class="fa-solid fa-circle-check text-cyan-400 mt-0.5 text-sm flex-shrink-0"></i>
+                <i class="fa-solid fa-circle-check text-neonCyan mt-0.5 text-sm flex-shrink-0"></i>
                 <span><strong>Real-Time Threshold Monitoring:</strong> Implemented real-time threshold monitoring to automatically stop motor circuits upon detecting safety hazards.</span>
               </div>
               <div class="flex items-start gap-2.5">
-                <i class="fa-solid fa-circle-check text-cyan-400 mt-0.5 text-sm flex-shrink-0"></i>
+                <i class="fa-solid fa-circle-check text-neonCyan mt-0.5 text-sm flex-shrink-0"></i>
                 <span><strong>Alarm & Feedback Subsystem:</strong> Integrated buzzer alarms and visual LED indicators to provide instant user feedback.</span>
               </div>
             </div>
 
             <!-- Tags -->
-            <div class="flex flex-wrap gap-2 pt-2">
+            <div class="depth-2 flex flex-wrap gap-2 pt-2">
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">C++</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Embedded C++</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Arduino IDE</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Sensor Integration</span>
-              <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Relay Cutoff</span>
             </div>
           </div>
 
           <!-- Card Action -->
-          <div class="pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
-            <button onclick="openProjectModal('iot')" class="touch-target text-xs font-mono font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-2 group-hover:translate-x-1 transition-all">
-              <span>View System Architecture & Circuit</span>
+          <div class="depth-3 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <button onclick="openProjectModal('iot')" class="touch-target text-xs font-mono font-bold text-neonCyan hover:underline flex items-center gap-2 group-hover:translate-x-1 transition-all">
+              <span>View 3D Circuit & Architecture</span>
               <i class="fa-solid fa-arrow-right text-[11px]"></i>
             </button>
-            <span class="text-xs font-mono text-slate-500">Hardware & Firmware</span>
+            <span class="text-xs font-mono text-slate-500">Microcontroller Core</span>
           </div>
 
         </div>
 
         <!-- PROJECT 2: Vision & Anomaly Alert System -->
-        <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 border border-indigo-500/20 relative group">
+        <div class="tilt-3d glass-holo rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 border border-indigo-500/25 group">
           
           <div class="space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+            <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+              <span class="px-3.5 py-1 rounded-full text-xs font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                 AI & Machine Learning
               </span>
-              <span class="text-xs font-mono text-slate-400">Data Analytics Pipeline</span>
+              <span class="text-xs font-mono text-slate-400">Data Analytics</span>
             </div>
 
-            <h3 class="text-xl sm:text-2xl font-outfit font-bold text-white tracking-tight group-hover:text-indigo-300 transition-colors">
-              Real-Time AI Anomaly & Crowd Analytics System
-            </h3>
+            <div class="depth-3">
+              <h3 class="text-xl sm:text-2xl font-outfit font-bold text-white tracking-tight group-hover:text-indigo-300 transition-colors">
+                Real-Time AI Anomaly & Crowd Analytics
+              </h3>
+              <p class="text-xs font-mono text-indigo-400 mt-1">Tools Used: Python, OpenCV, YOLO, Flask, MySQL</p>
+            </div>
 
-            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Designed an intelligent surveillance solution integrating computer vision models to perform continuous spatial crowd density calculations and trigger automated security alarms when capacity limits are crossed.
+            <p class="depth-1 text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Designed an intelligent surveillance solution integrating computer vision models to perform continuous spatial crowd density calculations and trigger automated security alarms.
             </p>
 
-            <div class="space-y-2.5 pt-2 text-xs text-slate-300 font-sans">
+            <div class="depth-2 space-y-2.5 pt-1 text-xs text-slate-300 font-sans">
               <div class="flex items-start gap-2.5">
                 <i class="fa-solid fa-circle-check text-indigo-400 mt-0.5 text-sm flex-shrink-0"></i>
-                <span><strong>Object Detection Stream:</strong> Utilized OpenCV and YOLO algorithms to identify and count individuals with low-latency inference.</span>
+                <span><strong>Object Detection Stream:</strong> Utilized OpenCV and deep learning inference to identify and count individuals in real-time.</span>
               </div>
               <div class="flex items-start gap-2.5">
                 <i class="fa-solid fa-circle-check text-indigo-400 mt-0.5 text-sm flex-shrink-0"></i>
-                <span><strong>Automated Safety Thresholds:</strong> Programmed logic triggers that sound local alarms whenever regional overcrowding emerges.</span>
+                <span><strong>Automated Safety Thresholds:</strong> Programmed triggers that sound local alarms whenever overcrowding exceeds safety limits.</span>
               </div>
               <div class="flex items-start gap-2.5">
                 <i class="fa-solid fa-circle-check text-indigo-400 mt-0.5 text-sm flex-shrink-0"></i>
@@ -724,22 +809,21 @@
             </div>
 
             <!-- Tags -->
-            <div class="flex flex-wrap gap-2 pt-2">
+            <div class="depth-2 flex flex-wrap gap-2 pt-2">
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Python</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">OpenCV</span>
-              <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">YOLOv8</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">Flask</span>
               <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 border border-white/10">MySQL</span>
             </div>
           </div>
 
           <!-- Card Action -->
-          <div class="pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
-            <button onclick="openProjectModal('vision')" class="touch-target text-xs font-mono font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-2 group-hover:translate-x-1 transition-all">
+          <div class="depth-3 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <button onclick="openProjectModal('vision')" class="touch-target text-xs font-mono font-bold text-indigo-400 hover:underline flex items-center gap-2 group-hover:translate-x-1 transition-all">
               <span>View Data Flow Specs</span>
               <i class="fa-solid fa-arrow-right text-[11px]"></i>
             </button>
-            <span class="text-xs font-mono text-slate-500">CV & Analytics</span>
+            <span class="text-xs font-mono text-slate-500">Computer Vision</span>
           </div>
 
         </div>
@@ -747,82 +831,82 @@
       </div>
     </section>
 
-    <!-- ==================== 5. EDUCATION & CERTIFICATIONS ==================== -->
-    <section id="education" class="space-y-8 sm:space-y-10 scroll-mt-24">
+    <!-- ==================== 5. 3D EDUCATION & CERTIFICATIONS ==================== -->
+    <section id="education" class="space-y-8 sm:space-y-10 scroll-mt-24 preserve-3d">
       
       <div class="space-y-1">
-        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-neonCyan uppercase tracking-widest">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan"></span>
           <span>04 / Credentials</span>
         </div>
         <h2 class="text-2xl xs:text-3xl sm:text-4xl font-outfit font-black text-white tracking-tight">
           Education & Certifications
         </h2>
-        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Academic record, degrees, and certified industry coursework.</p>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Verified degrees from Vels Institute and certifications from Inspire Softech.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         
-        <!-- Left: Responsive Education Timeline -->
-        <div class="lg:col-span-7 space-y-6">
+        <!-- Left: Education 3D Timeline -->
+        <div class="lg:col-span-7 space-y-5">
           <h3 class="text-lg font-outfit font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-graduation-cap text-cyan-400"></i>
+            <i class="fa-solid fa-graduation-cap text-neonCyan"></i>
             <span>Education Roadmap</span>
           </h3>
 
           <div class="space-y-4">
             
             <!-- Degree 1: M.Sc. Data Science -->
-            <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-cyan-400 space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h4 class="font-outfit font-bold text-white text-sm sm:text-base">M.Sc. Data Science & Business Analytics</h4>
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+            <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-neonCyan space-y-2">
+              <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+                <h4 class="font-outfit font-bold text-white text-base">M.Sc. Data Science & Business Analytics</h4>
+                <span class="px-3 py-0.5 rounded-full text-xs font-mono bg-neonCyan/15 text-neonCyan border border-neonCyan/30">
                   Present
                 </span>
               </div>
-              <p class="text-cyan-400 text-xs font-mono">Vels Institute of Science, Technology & Advanced Studies (VISTAS)</p>
-              <p class="text-xs text-slate-300 leading-relaxed pt-1">
+              <p class="depth-1 text-neonCyan text-xs font-mono">Vels Institute of Science, Technology & Advanced Studies</p>
+              <p class="depth-1 text-xs text-slate-300 leading-relaxed pt-1">
                 Postgraduate specialization in statistical data modeling, machine learning algorithms, database query optimization, and predictive business intelligence.
               </p>
             </div>
 
-            <!-- Degree 2: B.Sc. Computer Science (AI & ML) -->
-            <div class="glass-card rounded-2xl p-5 sm:p-6 border-l-4 border-l-indigo-400 space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h4 class="font-outfit font-bold text-white text-sm sm:text-base">B.Sc. Computer Science (AI & ML)</h4>
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <!-- Degree 2: B.Sc. AI & ML -->
+            <div class="tilt-3d glass-holo rounded-2xl p-5 border-l-4 border-l-indigo-400 space-y-2">
+              <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+                <h4 class="font-outfit font-bold text-white text-base">B.Sc. Computer Science (AI & ML)</h4>
+                <span class="px-3 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   CGPA: 8.12
                 </span>
               </div>
-              <p class="text-indigo-400 text-xs font-mono">Vels Institute of Science, Technology & Advanced Studies &bull; 2022 – 2025</p>
-              <p class="text-xs text-slate-300 leading-relaxed pt-1">
+              <p class="depth-1 text-indigo-400 text-xs font-mono">Vels Institute of Science, Technology & Advanced Studies &bull; 2022-2025</p>
+              <p class="depth-1 text-xs text-slate-300 leading-relaxed pt-1">
                 Completed with high distinction. Coursework in Object-Oriented Programming (Java/C++), Data Structures, Relational Database Management Systems, and Artificial Intelligence foundations.
               </p>
             </div>
 
-            <!-- Schooling: HSC -->
-            <div class="glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-l-slate-600 space-y-1">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h4 class="font-outfit font-bold text-white text-xs sm:text-sm">HSC (Class XII)</h4>
+            <!-- HSC (Class XII) -->
+            <div class="tilt-3d glass-holo rounded-2xl p-4 border-l-4 border-l-slate-600 space-y-1">
+              <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+                <h4 class="font-outfit font-bold text-white text-sm">HSC (Class XII)</h4>
                 <span class="text-xs font-mono text-slate-300">Percentage: 60% &bull; 2021 – 2022</span>
               </div>
-              <p class="text-xs text-slate-400">St. John's Matriculation Higher Secondary School</p>
+              <p class="depth-1 text-xs text-slate-400">St. John's Matriculation Higher Secondary School</p>
             </div>
 
-            <!-- Schooling: SSLC -->
-            <div class="glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-l-slate-600 space-y-1">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h4 class="font-outfit font-bold text-white text-xs sm:text-sm">SSLC (Class X)</h4>
+            <!-- SSLC (Class X) -->
+            <div class="tilt-3d glass-holo rounded-2xl p-4 border-l-4 border-l-slate-600 space-y-1">
+              <div class="depth-2 flex flex-wrap items-center justify-between gap-2">
+                <h4 class="font-outfit font-bold text-white text-sm">SSLC (Class X)</h4>
                 <span class="text-xs font-mono text-slate-300">Percentage: 66.6% &bull; 2019 – 2020</span>
               </div>
-              <p class="text-xs text-slate-400">St. Francis Xavier's Matriculation School</p>
+              <p class="depth-1 text-xs text-slate-400">St. Francis Xavier's Matriculation School</p>
             </div>
 
           </div>
         </div>
 
-        <!-- Right: Professional Certifications & Declaration -->
-        <div class="lg:col-span-5 space-y-6">
+        <!-- Right: Certifications & Declaration -->
+        <div class="lg:col-span-5 space-y-5">
           <h3 class="text-lg font-outfit font-bold text-white flex items-center gap-2">
             <i class="fa-solid fa-award text-indigo-400"></i>
             <span>Certifications</span>
@@ -831,42 +915,45 @@
           <div class="space-y-4">
             
             <!-- Cert 1 -->
-            <div class="glass-card rounded-2xl p-5 sm:p-6 space-y-3 border-t-2 border-t-cyan-400">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-mono font-bold text-cyan-400 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">Verified Credential</span>
+            <div class="tilt-3d glass-holo rounded-2xl p-5 space-y-3 border-t-2 border-t-neonCyan">
+              <div class="depth-2 flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-neonCyan px-2.5 py-0.5 rounded-full bg-neonCyan/10 border border-neonCyan/30">Verified Credential</span>
                 <i class="fa-brands fa-python text-amber-400 text-lg"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-sm sm:text-base">
+              <h4 class="depth-2 font-outfit font-bold text-white text-sm sm:text-base">
                 Python for Data Science and Machine Learning
               </h4>
-              <p class="text-xs font-mono text-slate-400">Issuer: Inspire Softech Solutions</p>
-              <p class="text-xs text-slate-300 leading-relaxed">
-                Applied hands-on training covering NumPy, Pandas, data exploration, model training, and analytical visualization.
+              <p class="depth-1 text-xs font-mono text-slate-400">Issuer: Inspire Softech Solutions</p>
+              <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+                Applied training covering NumPy, Pandas, data exploration, ML model training, and analytical visualization.
               </p>
             </div>
 
             <!-- Cert 2 -->
-            <div class="glass-card rounded-2xl p-5 sm:p-6 space-y-3 border-t-2 border-t-indigo-400">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-mono font-bold text-indigo-400 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">Technical Training</span>
+            <div class="tilt-3d glass-holo rounded-2xl p-5 space-y-3 border-t-2 border-t-indigo-400">
+              <div class="depth-2 flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-indigo-400 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30">Technical Training</span>
                 <i class="fa-solid fa-robot text-indigo-400 text-lg"></i>
               </div>
-              <h4 class="font-outfit font-bold text-white text-sm sm:text-base">
+              <h4 class="depth-2 font-outfit font-bold text-white text-sm sm:text-base">
                 Artificial Intelligence and Employability Training
               </h4>
-              <p class="text-xs font-mono text-slate-400">Issuer: Inspire Softech Solutions</p>
-              <p class="text-xs text-slate-300 leading-relaxed">
-                Practical instruction on AI conceptual workflows, algorithmic problem formulation, and software developer workplace readiness.
+              <p class="depth-1 text-xs font-mono text-slate-400">Issuer: Inspire Softech Solutions</p>
+              <p class="depth-1 text-xs text-slate-300 leading-relaxed">
+                Practical instruction on AI workflows, problem formulation, and software development employability.
               </p>
             </div>
 
             <!-- Verbatim Resume Declaration Card -->
-            <div class="p-5 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400 space-y-2">
-              <span class="font-mono text-cyan-400 block font-semibold uppercase tracking-wider text-[11px]">Declaration</span>
-              <p class="italic text-slate-300 leading-relaxed">
+            <div class="tilt-3d p-5 rounded-2xl glass-holo border border-white/10 text-xs text-slate-400 space-y-2">
+              <div class="depth-2 flex items-center gap-2 text-neonCyan font-mono font-semibold uppercase tracking-wider text-[11px]">
+                <i class="fa-solid fa-signature"></i>
+                <span>Declaration</span>
+              </div>
+              <p class="depth-1 italic text-slate-300 leading-relaxed">
                 "I hereby declare that the details provided above are true and correct to the best of my knowledge."
               </p>
-              <div class="text-right font-mono font-bold text-slate-200 pt-1">— SELVA KUMAR R</div>
+              <div class="depth-2 text-right font-mono font-bold text-white pt-1">— SELVA KUMAR R</div>
             </div>
 
           </div>
@@ -875,18 +962,18 @@
       </div>
     </section>
 
-    <!-- ==================== 6. CONTACT & UTILITIES ==================== -->
-    <section id="contact" class="space-y-8 sm:space-y-10 scroll-mt-24">
+    <!-- ==================== 6. 3D CONTACT & UTILITIES ==================== -->
+    <section id="contact" class="space-y-8 sm:space-y-10 scroll-mt-24 preserve-3d">
       
       <div class="space-y-1">
-        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-neonCyan uppercase tracking-widest">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan"></span>
           <span>05 / Connection</span>
         </div>
         <h2 class="text-2xl xs:text-3xl sm:text-4xl font-outfit font-black text-white tracking-tight">
           Get in Touch
         </h2>
-        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Available for fresher software developer interviews, graduate internships, and technical collaboration.</p>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Available for fresher software developer interviews, graduate internships, and engineering collaboration.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
@@ -894,70 +981,70 @@
         <!-- Contact Cards (Strictly No Phone Number) -->
         <div class="lg:col-span-5 space-y-4">
           
-          <!-- Email Card with Copy Button & Mailto Link -->
-          <div class="glass-card rounded-2xl p-5 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3.5 min-w-0">
-              <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg flex-shrink-0">
+          <!-- Email Card -->
+          <div class="tilt-3d glass-holo holo-border-cyan rounded-2xl p-5 flex items-center justify-between gap-3">
+            <div class="depth-2 flex items-center gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-xl bg-neonCyan/10 border border-neonCyan/25 text-neonCyan flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-regular fa-envelope"></i>
               </div>
               <div class="min-w-0">
                 <span class="text-[11px] font-mono text-slate-400 block">Email Address</span>
-                <a href="mailto:selvakumar49763@gmail.com" class="text-xs sm:text-sm font-outfit font-bold text-white hover:text-cyan-400 transition break-all line-clamp-2">
+                <a href="mailto:selvakumar49763@gmail.com" class="text-xs sm:text-sm font-outfit font-bold text-white hover:text-neonCyan transition break-all line-clamp-2">
                   selvakumar49763@gmail.com
                 </a>
               </div>
             </div>
-            <button onclick="copyToClipboard('selvakumar49763@gmail.com', 'Email copied to clipboard!')" class="touch-target p-2.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-400 transition flex-shrink-0" title="Copy Email">
+            <button onclick="copyToClipboard('selvakumar49763@gmail.com', 'Email copied to clipboard!')" class="depth-2 touch-target p-2.5 rounded-xl bg-white/5 hover:bg-neonCyan/20 hover:text-neonCyan text-slate-400 transition flex-shrink-0" title="Copy Email">
               <i class="fa-regular fa-copy"></i>
             </button>
           </div>
 
           <!-- Location Card -->
-          <div class="glass-card rounded-2xl p-5 flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-lg flex-shrink-0">
+          <div class="tilt-3d glass-holo rounded-2xl p-5 flex items-center gap-3.5 border border-white/10">
+            <div class="depth-2 w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-400 flex items-center justify-center text-lg flex-shrink-0">
               <i class="fa-solid fa-location-dot"></i>
             </div>
-            <div>
+            <div class="depth-1">
               <span class="text-[11px] font-mono text-slate-400 block">Location</span>
               <span class="text-xs sm:text-sm font-outfit font-bold text-white">Chennai, Tamil Nadu, India</span>
             </div>
           </div>
 
-          <!-- Quick Print Resume Card -->
-          <button onclick="window.print()" class="touch-target w-full py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-white/10 hover:border-cyan-500/40 text-white font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition shadow-lg hover:shadow-cyan-500/10">
-            <i class="fa-solid fa-print text-cyan-400"></i>
-            <span>Print Clean Resume PDF</span>
+          <!-- Print PDF Button -->
+          <button onclick="window.print()" class="touch-target w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition">
+            <i class="fa-solid fa-print text-neonCyan"></i>
+            <span>Export Clean Resume PDF</span>
           </button>
 
         </div>
 
-        <!-- Touch-Friendly Interactive Contact Form -->
-        <div class="lg:col-span-7 glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 space-y-5">
-          <div class="space-y-1">
+        <!-- 3D Form Container -->
+        <div class="lg:col-span-7 tilt-3d glass-holo rounded-3xl p-6 sm:p-8 space-y-5 border border-white/15">
+          <div class="depth-2 space-y-1">
             <h3 class="text-lg sm:text-xl font-outfit font-bold text-white">Send a Direct Message</h3>
-            <p class="text-xs text-slate-400">Inquire about software engineering opportunities, interview schedules, or questions.</p>
+            <p class="text-xs text-slate-400">Inquire about developer roles, interviews, or engineering projects.</p>
           </div>
-          <form id="contactForm" onsubmit="handleFormSubmission(event)" class="space-y-4">
+          
+          <form id="contactForm" onsubmit="handleFormSubmission(event)" class="depth-1 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <label for="senderName" class="text-xs font-mono text-slate-300">Your Name *</label>
-                <!-- 16px font-size prevents iOS Safari from auto-zooming inputs on focus -->
-                <input type="text" id="senderName" required placeholder="e.g. Hiring Manager" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-cyan-400 focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
+                <input type="text" id="senderName" required placeholder="e.g. Technical Recruiter" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-neonCyan focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
               </div>
               <div class="space-y-1.5">
                 <label for="senderEmail" class="text-xs font-mono text-slate-300">Your Email *</label>
-                <input type="email" id="senderEmail" required placeholder="manager@company.com" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-cyan-400 focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
+                <input type="email" id="senderEmail" required placeholder="recruiter@company.com" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-neonCyan focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
               </div>
             </div>
             <div class="space-y-1.5">
               <label for="senderSubject" class="text-xs font-mono text-slate-300">Subject</label>
-              <input type="text" id="senderSubject" placeholder="Software Developer Opportunity" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-cyan-400 focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
+              <input type="text" id="senderSubject" placeholder="Fresher Software Developer Role" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-neonCyan focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition">
             </div>
             <div class="space-y-1.5">
               <label for="senderMessage" class="text-xs font-mono text-slate-300">Message *</label>
-              <textarea id="senderMessage" required rows="4" placeholder="Hello Selva, we reviewed your resume and would like to discuss..." class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-cyan-400 focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition resize-none"></textarea>
+              <textarea id="senderMessage" required rows="4" placeholder="Hello Selva, we reviewed your resume and would like to invite you for an interview..." class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-neonCyan focus:outline-none text-base sm:text-sm text-white placeholder-slate-500 transition resize-none"></textarea>
             </div>
-            <button type="submit" id="sendBtn" class="touch-target w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-outfit font-bold text-xs uppercase tracking-wider transition shadow-glow-cyan flex items-center justify-center gap-2">
+            <button type="submit" id="sendBtn" class="touch-target w-full py-3.5 rounded-xl bg-gradient-to-r from-neonCyan via-cyan-400 to-neonBlue hover:shadow-glow-cyan text-slate-950 font-outfit font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2">
               <i class="fa-solid fa-paper-plane text-xs"></i>
               <span>Send Message</span>
             </button>
@@ -970,22 +1057,22 @@
   </main>
 
   <!-- ======================== FLOATING BACK TO TOP BUTTON ======================== -->
-  <button id="backToTopBtn" onclick="scrollToTop()" class="touch-target fixed bottom-5 right-5 z-40 w-11 h-11 rounded-full glass-card border border-cyan-500/40 text-cyan-400 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 shadow-lg hover:bg-cyan-500 hover:text-slate-950" aria-label="Back to Top">
+  <button id="backToTopBtn" onclick="scrollToTop()" class="touch-target fixed bottom-5 right-5 z-40 w-11 h-11 rounded-full glass-holo border border-neonCyan/40 text-neonCyan flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 shadow-lg hover:bg-neonCyan hover:text-slate-950" aria-label="Back to Top">
     <i class="fa-solid fa-arrow-up text-sm"></i>
   </button>
 
   <!-- ======================== FOOTER ======================== -->
-  <footer class="border-t border-white/10 bg-darkBg/90 backdrop-blur-md py-6 sm:py-8 px-4 sm:px-6 lg:px-8 no-print">
+  <footer class="border-t border-white/10 bg-spaceBg/90 backdrop-blur-md py-6 sm:py-8 px-4 sm:px-6 lg:px-8 no-print relative z-10">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400 text-center sm:text-left">
       <div class="flex items-center justify-center sm:justify-start gap-2">
-        <span class="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0"></span>
-        <span class="truncate">Selva Kumar R &bull; Chennai, Tamil Nadu, India</span>
+        <span class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-glow-cyan flex-shrink-0"></span>
+        <span>Selva Kumar R &bull; Chennai, Tamil Nadu, India</span>
       </div>
       <div>
-        <span>Built with Responsive HTML, Tailwind CSS & JavaScript</span>
+        <span>Interactive 3D WebGL (Three.js) & CSS 3D Transforms</span>
       </div>
       <div>
-        <a href="#hero" class="text-cyan-400 hover:underline flex items-center justify-center sm:justify-end gap-1.5 font-semibold">
+        <a href="#hero" class="text-neonCyan hover:underline flex items-center justify-center sm:justify-end gap-1.5 font-semibold">
           <span>Back to Top</span>
           <i class="fa-solid fa-arrow-up text-[10px]"></i>
         </a>
@@ -993,15 +1080,15 @@
     </div>
   </footer>
 
-  <!-- ======================== PROJECT SPECIFICATION MODAL (Responsive Touch Optimized) ======================== -->
+  <!-- ======================== 3D PROJECT MODAL ======================== -->
   <div id="projectModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md hidden transition-opacity duration-300 opacity-0 pointer-events-none">
-    <div class="glass-card bg-slate-900 max-w-2xl w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 relative transform transition-all scale-95 max-h-[88vh] flex flex-col" id="modalBox">
+    <div class="glass-holo max-w-2xl w-full rounded-3xl overflow-hidden border border-neonCyan/30 relative transform transition-all scale-95 max-h-[88vh] flex flex-col" id="modalBox">
       
       <!-- Modal Header -->
       <div class="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between bg-white/5 flex-shrink-0">
         <div class="min-w-0 pr-3">
-          <span id="modalCategory" class="text-[10px] sm:text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider block truncate">PROJECT SPECIFICATION</span>
-          <h3 id="modalTitle" class="text-base sm:text-xl font-outfit font-bold text-white mt-0.5 truncate">System Architecture</h3>
+          <span id="modalCategory" class="text-[10px] sm:text-xs font-mono font-bold text-neonCyan uppercase tracking-wider block truncate">3D PROJECT ARCHITECTURE</span>
+          <h3 id="modalTitle" class="text-base sm:text-xl font-outfit font-bold text-white mt-0.5 truncate">System Specification</h3>
         </div>
         <button onclick="closeProjectModal()" class="touch-target w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition flex-shrink-0" aria-label="Close Modal">
           <i class="fa-solid fa-xmark text-base"></i>
@@ -1023,14 +1110,204 @@
     </div>
   </div>
 
-  <!-- ======================== JAVASCRIPT ======================== -->
+  <!-- ======================== THREE.JS 3D BACKGROUND ENGINE & SCRIPTS ======================== -->
   <script>
-    // ---------- 1. Dynamic Typing Animation with Multiple Roles ----------
+    // ---------- 1. THREE.JS 3D SCENE SETUP & ANIMATION LOOP ----------
+    let scene, camera, renderer, icosahedron, torusKnot, particleSystem;
+    let mouseX = 0, mouseY = 0;
+    let targetX = 0, targetY = 0;
+    let isMouseDown = false;
+    let prevMousePos = { x: 0, y: 0 };
+
+    function initThreeJS() {
+      const container = document.getElementById('three-canvas-container');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Create Scene & Camera
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+      camera.position.z = 32;
+
+      // WebGL Renderer with Alpha
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // --- Geometry 1: 3D Wireframe Icosahedron ---
+      const icoGeometry = new THREE.IcosahedronGeometry(9, 1);
+      const icoMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.22
+      });
+      icosahedron = new THREE.Mesh(icoGeometry, icoMaterial);
+      icosahedron.position.set(12, 2, -5);
+      scene.add(icosahedron);
+
+      // --- Geometry 2: 3D Inner Torus Knot ---
+      const torusGeometry = new THREE.TorusKnotGeometry(4.5, 0.9, 100, 16);
+      const torusMaterial = new THREE.MeshBasicMaterial({
+        color: 0xa855f7,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25
+      });
+      torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
+      torusKnot.position.set(-14, -6, -10);
+      scene.add(torusKnot);
+
+      // --- Geometry 3: Cosmic Cyber-Dust Particle Cloud ---
+      const particleCount = 1400;
+      const particleGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      const colorCyan = new THREE.Color(0x00f0ff);
+      const colorPurple = new THREE.Color(0x818cf8);
+
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 95;
+        positions[i + 1] = (Math.random() - 0.5) * 85;
+        positions[i + 2] = (Math.random() - 0.5) * 60;
+
+        const mixedColor = colorCyan.clone().lerp(colorPurple, Math.random());
+        colors[i] = mixedColor.r;
+        colors[i + 1] = mixedColor.g;
+        colors[i + 2] = mixedColor.b;
+      }
+
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.22,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.65
+      });
+
+      particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+      scene.add(particleSystem);
+
+      // Window Resize Listener
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Interactive Pointer Tracking (Parallax)
+      window.addEventListener('mousemove', onDocumentMouseMove, false);
+
+      // Interactive Drag Controls
+      window.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        prevMousePos = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('mouseup', () => { isMouseDown = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const deltaX = e.clientX - prevMousePos.x;
+        const deltaY = e.clientY - prevMousePos.y;
+        if (icosahedron) {
+          icosahedron.rotation.y += deltaX * 0.005;
+          icosahedron.rotation.x += deltaY * 0.005;
+        }
+        if (torusKnot) {
+          torusKnot.rotation.y += deltaX * 0.005;
+          torusKnot.rotation.x += deltaY * 0.005;
+        }
+        prevMousePos = { x: e.clientX, y: e.clientY };
+      });
+    }
+
+    function onWindowResize() {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDocumentMouseMove(event) {
+      mouseX = (event.clientX - window.innerWidth / 2) * 0.0008;
+      mouseY = (event.clientY - window.innerHeight / 2) * 0.0008;
+    }
+
+    // 3D Animation Render Loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Smooth camera parallax easing
+      targetX += (mouseX - targetX) * 0.05;
+      targetY += (mouseY - targetY) * 0.05;
+
+      camera.position.x = targetX * 12;
+      camera.position.y = -targetY * 12;
+      camera.lookAt(scene.position);
+
+      // Rotate 3D Wireframes
+      if (icosahedron) {
+        icosahedron.rotation.x += 0.004;
+        icosahedron.rotation.y += 0.006;
+      }
+      if (torusKnot) {
+        torusKnot.rotation.x -= 0.005;
+        torusKnot.rotation.y += 0.007;
+      }
+
+      // Rotate & drift particle cloud
+      if (particleSystem) {
+        particleSystem.rotation.y += 0.0007;
+        particleSystem.rotation.x += 0.0003;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Start 3D Engine on Window Load
+    window.onload = function () {
+      initThreeJS();
+      animate();
+      init3DCardTilt();
+      typeLoop();
+    };
+
+    // ---------- 2. VANILLA CSS 3D CARD TILT & DEPTH ENGINE ----------
+    function init3DCardTilt() {
+      const tiltCards = document.querySelectorAll('.tilt-3d');
+
+      tiltCards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+
+          // Compute 3D rotation angles (-12 to +12 degrees)
+          const rotateX = ((y - centerY) / centerY) * -11;
+          const rotateY = ((x - centerX) / centerX) * 11;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+
+          // Compute sheen coordinates
+          const sheenX = (x / rect.width) * 100;
+          const sheenY = (y / rect.height) * 100;
+          card.style.setProperty('--sheen-x', `${sheenX}%`);
+          card.style.setProperty('--sheen-y', `${sheenY}%`);
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+        });
+      });
+    }
+
+    // ---------- 3. DYNAMIC TYPING ANIMATION ----------
     const phrases = [
       "Fresher Software Developer",
-      "M.Sc. Data Science Candidate",
+      "M.Sc. Data Science & Analytics",
       "IoT & Embedded Systems Designer",
-      "B.Sc. Computer Science Graduate"
+      "B.Sc. AI & ML Graduate (8.12 CGPA)"
     ];
     let phraseIndex = 0;
     let charIndex = 0;
@@ -1048,10 +1325,10 @@
         charIndex++;
       }
 
-      let typingSpeed = isDeleting ? 35 : 75;
+      let typingSpeed = isDeleting ? 30 : 75;
 
       if (!isDeleting && charIndex === currentPhrase.length) {
-        typingSpeed = 1900; // Pause when complete
+        typingSpeed = 1900;
         isDeleting = true;
       } else if (isDeleting && charIndex === 0) {
         isDeleting = false;
@@ -1061,9 +1338,8 @@
 
       setTimeout(typeLoop, typingSpeed);
     }
-    document.addEventListener("DOMContentLoaded", typeLoop);
 
-    // ---------- 2. Accessible Mobile Menu Drawer Logic ----------
+    // ---------- 4. MOBILE DRAWER CONTROLLER ----------
     const mobileToggle = document.getElementById('mobileNavToggle');
     const mobileDrawer = document.getElementById('mobileDrawer');
     const hamburgerIcon = document.getElementById('hamburgerIcon');
@@ -1073,7 +1349,6 @@
       if (isHidden) {
         mobileDrawer.classList.remove('hidden');
         hamburgerIcon.classList.replace('fa-bars', 'fa-xmark');
-        mobileToggle.setAttribute('aria-expanded', 'true');
       } else {
         closeMobileDrawer();
       }
@@ -1082,32 +1357,22 @@
     function closeMobileDrawer() {
       mobileDrawer.classList.add('hidden');
       hamburgerIcon.classList.replace('fa-xmark', 'fa-bars');
-      mobileToggle.setAttribute('aria-expanded', 'false');
     }
 
     mobileToggle.addEventListener('click', toggleMobileDrawer);
-
-    // Close drawer when any mobile nav link is tapped
     document.querySelectorAll('.drawer-link').forEach(link => {
       link.addEventListener('click', closeMobileDrawer);
     });
 
-    // Close mobile drawer on outside click
-    document.addEventListener('click', (e) => {
-      if (!mobileToggle.contains(e.target) && !mobileDrawer.contains(e.target) && !mobileDrawer.classList.contains('hidden')) {
-        closeMobileDrawer();
-      }
-    });
-
-    // ---------- 3. Skills Filtering Logic ----------
+    // ---------- 5. SKILLS MATRIX FILTER ----------
     function filterSkills(category) {
       const buttons = document.querySelectorAll('.skill-filter-btn');
       buttons.forEach(btn => {
         if (btn.getAttribute('data-category') === category) {
-          btn.classList.add('active-filter', 'bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+          btn.classList.add('active-filter', 'bg-neonCyan/20', 'text-neonCyan', 'border', 'border-neonCyan/30');
           btn.classList.remove('text-slate-400');
         } else {
-          btn.classList.remove('active-filter', 'bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+          btn.classList.remove('active-filter', 'bg-neonCyan/20', 'text-neonCyan', 'border', 'border-neonCyan/30');
           btn.classList.add('text-slate-400');
         }
       });
@@ -1122,11 +1387,9 @@
         }
       });
     }
-
-    // Set initial filter active style
     filterSkills('all');
 
-    // ---------- 4. Toast Notification Controller ----------
+    // ---------- 6. TOAST NOTIFICATION UTILITY ----------
     let toastTimeout;
     function showToast(message, isSuccess = true) {
       const toast = document.getElementById('toast');
@@ -1135,8 +1398,8 @@
 
       toastMsg.textContent = message;
       if (isSuccess) {
-        toastIcon.className = 'fa-solid fa-circle-check text-cyan-400 text-base flex-shrink-0';
-        toast.style.borderColor = 'rgba(6, 182, 212, 0.5)';
+        toastIcon.className = 'fa-solid fa-circle-check text-neonCyan text-base flex-shrink-0';
+        toast.style.borderColor = 'rgba(0, 240, 255, 0.5)';
       } else {
         toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-base flex-shrink-0';
         toast.style.borderColor = 'rgba(244, 63, 94, 0.5)';
@@ -1152,7 +1415,7 @@
       }, 3500);
     }
 
-    // ---------- 5. Clipboard Copy Utility with Fallbacks ----------
+    // ---------- 7. 3D CLIPBOARD COPY UTILITY ----------
     function copyToClipboard(text, successMsg) {
       const input = document.createElement('input');
       input.value = text;
@@ -1167,7 +1430,7 @@
       document.body.removeChild(input);
     }
 
-    // ---------- 6. Project Architecture Modals ----------
+    // ---------- 8. 3D PROJECT MODAL DATA ----------
     const projectDatabase = {
       iot: {
         title: "IoT-Based Automotive Safety System",
@@ -1176,13 +1439,13 @@
           <div class="space-y-4 font-sans text-xs sm:text-sm">
             <p><strong>System Objective:</strong> Built an automated vehicle ignition-lock system using C++ and hardware sensors to intercept the starter motor upon detecting safety hazards.</p>
             
-            <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <span class="font-mono font-bold text-cyan-400 block uppercase tracking-wider text-xs">Hardware Components & Tools</span>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <span class="font-mono font-bold text-neonCyan block uppercase tracking-wider text-xs">Microcontroller & Sensor Hardware</span>
               <ul class="list-disc list-inside space-y-1 text-slate-300 font-mono text-xs">
-                <li>Microcontroller: Arduino Uno / Nano (Embedded C++)</li>
+                <li>Controller: Arduino Uno/Nano (Embedded C++)</li>
                 <li>Actuator: High-amperage 5V Relay module controlling DC ignition circuit</li>
-                <li>Sensors: Analog alcohol/gas sensor, proximity infrared switches, tilt safety sensors</li>
-                <li>Feedback Indicators: Active Piezo Buzzer alarm & Dual-state visual LEDs</li>
+                <li>Sensors: Analog gas/alcohol sensor, proximity infrared switches, tilt safety sensors</li>
+                <li>Feedback: Active Piezo Buzzer alarm & Dual-state visual LEDs</li>
               </ul>
             </div>
 
@@ -1205,7 +1468,7 @@
           <div class="space-y-4 font-sans text-xs sm:text-sm">
             <p><strong>System Objective:</strong> Intelligent computer vision pipeline designed for spatial occupancy estimation, movement density calculations, and automated threshold warnings.</p>
             
-            <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-2">
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <span class="font-mono font-bold text-indigo-400 block uppercase tracking-wider text-xs">Software & Data Stack</span>
               <ul class="list-disc list-inside space-y-1 text-slate-300 font-mono text-xs">
                 <li>Vision Inference: OpenCV & YOLOv8 Deep Learning</li>
@@ -1270,10 +1533,10 @@
       if (e.key === 'Escape') closeProjectModal();
     });
 
-    // ---------- 7. Floating Back-to-Top Button Controller ----------
+    // ---------- 9. FLOATING BACK TO TOP BUTTON ----------
     const backToTopBtn = document.getElementById('backToTopBtn');
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 320) {
+      if (window.scrollY > 300) {
         backToTopBtn.classList.remove('opacity-0', 'pointer-events-none');
         backToTopBtn.classList.add('opacity-100', 'pointer-events-auto');
       } else {
@@ -1286,7 +1549,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ---------- 8. Contact Form Simulation ----------
+    // ---------- 10. CONTACT FORM HANDLER ----------
     function handleFormSubmission(event) {
       event.preventDefault();
       const name = document.getElementById('senderName').value.trim();
@@ -1300,7 +1563,7 @@
 
       const btn = document.getElementById('sendBtn');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Transmitting...`;
 
       setTimeout(() => {
         btn.disabled = false;
